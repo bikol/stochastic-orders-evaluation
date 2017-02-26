@@ -17,6 +17,9 @@ cost.func.fn = function(cost) {
     return(pmax(0, 0.2 * cost))
 }
 cost.func.fn.default = 5
+
+cost.func.intesections = c(0, -5/7, -5/6, -1, -1.25, -5/3, -2.5, -10/3, -5)
+
 ##
 
 ff1 = c("TN", "TN", "TN", "TN", "FP", "TP", "TP", "TP", "TP", "FN")

@@ -20,6 +20,30 @@ getInitialPoint = function(f1, f2) {
     return(list(x = default1, y = default2))
 }
 
+# return point where f1 for sure dominates f2, if it is possible
+getSurePoint = function(f1, f2) {
+    x = c()
+    y = c()
+    for(i in 1:length(f1)){
+        if(f1[[i]]=="FP" && f2[[i]]=="TN"){
+            x = append(x, 5/7)
+            y = append(y, 5/7)
+        } else if(f1[[i]]=="FN" && f2[[i]]=="TP"){
+            x = append(x, 5/3)
+            y = append(y, 5/3)
+        } else if(f1[[i]]=="FN"){
+            # f1[[i]]==f2[[i]]
+            x = append(x, cost.func.fn.default)
+        } else if(f1[[i]]=="FP"){
+            # f1[[i]]==f2[[i]]
+            x = append(x, cost.func.fp.default)
+        } else if(f1[[i]]=="TN" && f2[[i]]=="FP"){
+            y = append(y, cost.func.fp.default)
+        }
+    }
+    return(c(x, y))
+}
+
 getOptimVarCount = function(f1, f2) {
     fillIndex = 0
     for (i in 1:length(f1)) {
@@ -117,15 +141,17 @@ stochastic.dominance.func = function(x, y, f1, f2) {
     return(min(p.x, p.y))
 }
 
-bruteOpt = function(f1, f2, fill, iters = 100000) {
+bruteOpt = function(f1, f2, iters = 100000) {
     count = getOptimVarCount(f1, f2)
-    return(max(replicate(iters, function() {
-        x = sample(c(0, -0.7143, -0.8333, -1, -1.25, -2, -2.5, -3.3333, -5),
+    fill = gen.getFilled(f1, f2)
+    eval.func = function() {
+        x = sample(cost.func.intesections,
                    count,
                    replace = T)
         filled = fill(x)
         return(stochastic.dominance.func(filled[[1]], filled[[2]], f1, f2))
-    }())))
+    }
+    return(max(replicate(iters, eval.func())))
 }
 
 gaOpt = function(f1,
@@ -145,4 +171,34 @@ gaOpt = function(f1,
         popSize = popSize,
         mutRate = mutRate
     ))
+}
+
+numericalOpt = function(f1, f2, maxit=1000000, method = "BFGS") {
+    count = getOptimVarCount(f1, f2)
+    flog.debug(paste0("Variables to optimise: ", count))
+    fill = gen.getFilled(f1, f2)
+    eval.func = function(x){
+        filled=fill(x)
+        return(stochastic.dominance.func(-filled$x, -filled$y, f1, f2))
+    }
+    par = getSurePoint(f1, f2)
+    if(length(par) != count){
+        flog.error("SurePoint:",par,capture=T)
+        flog.error("Optimisation variables count: %d", count)
+        stop("SurePoint lenght not match variables to optimise count.")
+    }
+    return(optim(par, eval.func, method = method, control=list(fnscale=-1, maxit=maxit)))
+}
+
+calcDominationDegree = function(f1, f2){
+    init.p = getInitialPoint(f1, f2)
+    init.val = stochastic.dominance.func(init.p$x, init.p$y, f1, f2)
+    if(abs(1-init.val)<1e-4) {
+        return(list(val=1.0, x=init.p$x, y=init.p$y))
+    }
+
+    numOpt = numericalOpt(f1, f2)
+    fill = gen.getFilled(f1, f2)
+    filled = fill(numOpt$par)
+    return(list(val=numOpt$value, x=filled$x, y=filled$y))
 }
