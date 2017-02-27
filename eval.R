@@ -24,26 +24,24 @@ cl = makeCluster(THREADS, outfile="")
 registerDoParallel(cl)
 
 # workaround for test, allows to speedup computations
-cutPoint = 175
-cutPoint2 = THREADS
-perm = sample(1:nrow(outcomes.all), cutPoint)
+cutPoint = 4
 
 flog.info("Start")
 
 print(system.time({
     results = foreach(
-    f1.name = colnames(outcomes.all)[6:(6+cutPoint2)],
+    f1.name = colnames(outcomes.all)[6:(6+cutPoint)],
     .packages=c("dplyr", "futile.logger"),
     .combine=rbind) %dopar% {
     sapply(colnames(outcomes.all), function(f2.name){
         f1 = as.character(outcomes.all[,f1.name])
         f2 = as.character(outcomes.all[,f2.name])
-        return(calcDominationDegree(skipNA(f1)[perm], skipNA(f2)[perm], cost.4)$val)
+        return(calcDominationDegree(skipNA(f1), skipNA(f2), cost.4)$val)
     })
     }
     # rows are X, and columns are Y,
     # results[[x, y]] contains X>Y dominance degree
-    rownames(results) = colnames(outcomes.all)[6:(6+cutPoint2)]
+    rownames(results) = colnames(outcomes.all)[6:(6+cutPoint)]
 }))
 
 flog.info("Finished!")

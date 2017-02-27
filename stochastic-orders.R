@@ -156,7 +156,13 @@ calcDominationDegree = function(f1, f2, cost){
         return(list(val=1.0, x=init.p$x, y=init.p$y))
     }
 
-    numOpt = numericalOpt(f1, f2, cost)
+    numOpt1 = numericalOpt(f1, f2, cost, method = "BFGS")
+    numOpt2 = numericalOpt(f1, f2, cost, method = "Nelder-Mead")
+    if(numOpt1$value > numOpt2$value){
+        numOpt = numOpt1
+    } else {
+        numOpt = numOpt2
+    }
     fill = gen.getFilled(f1, f2, cost)
     filled = fill(numOpt$par)
     return(list(val=numOpt$value, x=filled$x, y=filled$y))
