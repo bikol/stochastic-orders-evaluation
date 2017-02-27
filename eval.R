@@ -2,33 +2,41 @@ library(stats)
 library(gaoptim)
 library(dplyr)
 library(futile.logger)
+library(foreach)
+library(parallel)
+library(doParallel)
 
-# source("config.R")
+source("config.R")
 source("data.R")
 source("stochastic-orders.R")
 
+if(!exists("outcomes.all")){
+    e1 <- new.env()
+    load(EVALUATION.OUTPUT.LOCATION, envir=e1)
+    outcomes.all <- get("outcomes.all", e1)
+    rm(e1)
+}
 
+flog.info("Creating local FORK cluster")
 
+cl = makeCluster(THREADS, outfile="")
+registerDoParallel(cl)
 
-# ga1=gaOpt(ff1, ff2)
+# workaround for test, allows to speedup computations
+cutPoint = 2
+perm = sample(1:nrow(outcomes.all), cutPoint)
 
-cutPoint = 175
-perm = sample(1:length(mean_dec_owa_min_cen_0.025.4), cutPoint)
-fc1 = mean_dec_owa_min_cen_0.025.4[perm]
-fc2 = mean_ep_cen_0.0_3.4[perm]
-
-system.time(print(combinedOpt(fc1, fc2, method="BFGS", maxit = 500000)))
-print(comb)
-
-# ga1=gaOpt(fc2, fc1, popSize=100000)
-
-# system.time(print(bruteOpt(fc1, fc2, iters=1e6)))
-
-# system.time(ga1$evolve(3))
-# plot(ga1)
-# print(max(ga1$bestFit()))
-
-# ga1=gaOpt(ff1, ff3)
-# ga1$evolve(20)
-# plot(ga1)
-# print(max(ga1$bestFit()))
+flog.info("Start")
+results = foreach(
+    f1.name = colnames(outcomes.all),
+    .packages=c("dplyr", "futile.logger"),
+    .combine=rbind) %dopar% {
+    sapply(colnames(outcomes.all), function(f2.name){
+        f1 = as.character(outcomes.all[,f1.name])
+        f2 = as.character(outcomes.all[,f2.name])
+        return(calcDominationDegree(skipNA(f1)[perm], skipNA(f2)[perm])$val)
+    })
+    }
+# rows are X, and columns are Y,
+# results[[x, y]] contains X>Y dominance degree
+rownames(results) = colnames(outcomes.all)
