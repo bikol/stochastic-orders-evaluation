@@ -7,6 +7,7 @@ library(parallel)
 library(doParallel)
 
 source("config.R")
+source("cost.R")
 source("data.R")
 source("stochastic-orders.R")
 
@@ -23,20 +24,29 @@ cl = makeCluster(THREADS, outfile="")
 registerDoParallel(cl)
 
 # workaround for test, allows to speedup computations
-cutPoint = 2
+cutPoint = 175
+cutPoint2 = THREADS
 perm = sample(1:nrow(outcomes.all), cutPoint)
 
 flog.info("Start")
-results = foreach(
-    f1.name = colnames(outcomes.all),
+
+print(system.time({
+    results = foreach(
+    f1.name = colnames(outcomes.all)[6:(6+cutPoint2)],
     .packages=c("dplyr", "futile.logger"),
     .combine=rbind) %dopar% {
     sapply(colnames(outcomes.all), function(f2.name){
         f1 = as.character(outcomes.all[,f1.name])
         f2 = as.character(outcomes.all[,f2.name])
-        return(calcDominationDegree(skipNA(f1)[perm], skipNA(f2)[perm])$val)
+        return(calcDominationDegree(skipNA(f1)[perm], skipNA(f2)[perm], cost.4)$val)
     })
     }
-# rows are X, and columns are Y,
-# results[[x, y]] contains X>Y dominance degree
-rownames(results) = colnames(outcomes.all)
+    # rows are X, and columns are Y,
+    # results[[x, y]] contains X>Y dominance degree
+    rownames(results) = colnames(outcomes.all)[6:(6+cutPoint2)]
+}))
+
+flog.info("Finished!")
+
+
+stopCluster(cl)
