@@ -13,8 +13,10 @@ LOGGER.OVERWRITE.EXISTING.FILES = TRUE
 
 DATASETS.DIR           = 'datasets'
 EVALUATION.OUTPUT.FILE = 'evaluation-output.RData'
+RESULTS.FILE = 'results.RData'
 
 EVALUATION.OUTPUT.LOCATION = paste(DATASETS.DIR, EVALUATION.OUTPUT.FILE, sep='/')
+RESULTS.LOCATION = paste(DATASETS.DIR, EVALUATION.OUTPUT.FILE, sep='/')
 
 GEN.DATA.URL = "http://min.wmi.amu.edu.pl/data/ovarian-tumor-aggregation"
 
