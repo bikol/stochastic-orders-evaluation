@@ -44,20 +44,8 @@ print(system.time({
 }))
 
 flog.info("Finished!")
-
-
 stopCluster(cl)
 
-save(RESULTS.LOCATION)
+flog.info("Saving results to file")
 
-# fn1.n = "i_(soft_s.min_0.25)_(cen_0.025)"
-# fn2.n = "iMean_1_(cen_0.025)_2"
-#
-# fn1 = as.character(outcomes.all[,fn1.n])
-# fn2 = as.character(outcomes.all[,fn2.n])
-#
-# print(sapply(colnames(outcomes.all), function(f2.name){
-#     f1 = as.character(outcomes.all[,"mean_(dec_(owa_1))_cen_0.025"])
-#     f2 = as.character(outcomes.all[,f2.name])
-#     return(calcDominationDegree(f2, f1, cost.6, maxit=1e4)$val)
-# }))
+save(results, RESULTS.LOCATION)

@@ -1,4 +1,6 @@
 library(igraph)
+library(tikzDevice)
+options(tikzPdftexWarnUTF = FALSE)
 
 source("config.R")
 
@@ -9,25 +11,53 @@ if(!exists("results")){
     rm(e1)
 }
 
-result.norm2 = results
-result.norm2 = (result.norm2-min(result.norm2))/(1-min(result.norm2))
-diag(result.norm2) = rep(0, ncol(results))
+# normalisation
+results.norm = (results-min(results))/(1-min(results))
+results.norm = results.norm/(results.norm+t(results.norm))
+diag(results.norm) = rep(0, ncol(results.norm))
+
 
 removeToSmall = function(mx, ths){
     mx[mx<=ths]=0
     return(mx)
 }
 
-result.norm3 = result.norm2/(result.norm2+t(result.norm2))
 
-diag(result.norm2) = rep(0, ncol(results))
-diag(result.norm3) = rep(0, ncol(results))
+sel = c("mean_(dec_(owa_cen))_cen_0.025",        "mean_(dec_(owa_min))_cen_0.025",        "mean_ep_min_0.0_3",        "mean_ep_cen_0.0_3",        "iMean_wid_(cen_0.025)_2",        "mean_(dec_(owa_1))_cen_0.025",        "iMean_em_(cen_0.0)_3",        "mean_wid_min_0.025_3",        "mean_ep_max_0.0_3",        "cho_auc_cen_0.025",        "cho_card_cen_0.025",        "i_sug_card_(cen_0.025)",        "t.min_max_0.0")
+labels = LETTERS[1:length(sel)]
 
-sel = names(sort(apply(result.norm3, 2, max))[1:10])
-sel2 = names(sort(apply(result.norm2, 2, max))[1:10])
+# proposed approach graph
+gr= graph_from_adjacency_matrix(
+    removeToSmall(results.norm[sel, sel], 0.59),
+    mode=list("directed"),
+    weighted = T,
+    diag=F)
+tikz(file="latex/graph-proposed.tex", sanitize = T, height = 5, width = 6,
+     documentDeclaration = '\\documentclass[11pt,a4paper,oldfontcommands]{memoir}')
+plot(gr, layout=layout_with_sugiyama(gr)$layout, vertex.label=labels, edge.label=round(E(gr)$weight,2), edge.arrow.size=0.5,edge.label.cex=0.75)
+dev.off()
 
-gr= graph_from_adjacency_matrix(removeToSmall(result.norm3[sel, sel], 0.57), mode=list("directed"), weighted = T, diag=F)
-gr2= graph_from_adjacency_matrix(removeToSmall(result.norm2[sel2, sel2], 0.25), mode=list("directed"), weighted = T, diag=F)
 
-plot(gr, layout=layout_nicely(gr), edge.label=round(E(gr)$weight,2))
-plot(gr2, layout=layout_nicely(gr2), edge.label=round(E(gr)$weight,2))
+# statistical preference graph
+sp.matrix = as.matrix(read.csv("datasets/sp-dom-matrix.csv", header=T, row.names=1,check.names=F))
+gr.sp= graph_from_adjacency_matrix(
+    sp.matrix[sel, sel],
+    mode=list("directed"),
+    weighted = T,
+    diag=F)
+tikz(file="latex/graph-sp.tex", sanitize = T, height = 5, width = 6,
+     documentDeclaration = '\\documentclass[11pt,a4paper,oldfontcommands]{memoir}')
+plot(gr.sp, layout=layout_with_sugiyama(gr.sp)$layout, vertex.label=labels, edge.arrow.size=0.5,edge.label.cex=0.75)
+dev.off()
+
+# 1st dominance graph
+st.matrix = as.matrix(read.csv("datasets/1st-dom-matrix.csv", header=T, row.names=1,check.names=F))
+gr.1st= graph_from_adjacency_matrix(
+    st.matrix[sel, sel],
+    mode=list("directed"),
+    weighted = T,
+    diag=F)
+tikz(file="latex/graph-1st.tex", sanitize = T, height = 5, width = 6,
+     documentDeclaration = '\\documentclass[11pt,a4paper,oldfontcommands]{memoir}')
+plot(gr.1st, layout=layout_with_sugiyama(gr.1st)$layout, vertex.label=labels, edge.arrow.size=0.5,edge.label.cex=0.75)
+dev.off()
